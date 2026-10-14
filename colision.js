@@ -34,8 +34,25 @@ class Circle {
         context.closePath();
     }
 
-    update(context) {
+    detectCollision(circles) {
+        circles.forEach(other => {
+            if (this !== other) {
+                let dx = this.posX - other.posX;
+                let dy = this.posY - other.posY;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                // Si la distancia es menor a la suma de los radios, hay colisión
+                if (distance < this.radius + other.radius) {
+                    this.color = '#0000FF'; // Azul
+                    other.color = '#0000FF'; // Azul
+                }
+            }
+        });
+    }
+
+    update(context, circles) {
         this.draw(context);
+        this.detectCollision(circles);
 
         // Actualizar la posición X
         this.posX += this.dx;
@@ -55,17 +72,17 @@ class Circle {
     }
 }
 
-// Crear un array para almacenar N círculos
+// Crear un array para almacenar los círculos
 let circles = [];
 
-// Función para generar círculos aleatorios
+// Función para generar círculos aleatorios (20 círculos y velocidad de 1 a 5)
 function generateCircles(n) {
     for (let i = 0; i < n; i++) {
         let radius = Math.random() * 30 + 20; // Radio entre 20 y 50
         let x = Math.random() * (window_width - radius * 2) + radius;
         let y = Math.random() * (window_height - radius * 2) + radius;
         let color = `#${Math.floor(Math.random() * 16777215).toString(16)}`; // Color aleatorio
-        let speed = Math.random() * 2 + 1; // Velocidad entre 1 y 3
+        let speed = Math.random() * 4 + 1; // Velocidad entre 1 y 5
         let text = `C${i + 1}`; // Etiqueta del círculo
         circles.push(new Circle(x, y, radius, color, text, speed));
     }
@@ -75,11 +92,11 @@ function generateCircles(n) {
 function animate() {
     ctx.clearRect(0, 0, window_width, window_height); // Limpiar el canvas
     circles.forEach(circle => {
-        circle.update(ctx); // Actualizar cada círculo
+        circle.update(ctx, circles); // Actualizar cada círculo pasando el array completo
     });
     requestAnimationFrame(animate); // Repetir la animación
 }
 
-// Generar N círculos y comenzar la animación
-generateCircles(5); // Puedes cambiar el número de círculos aquí
+// Generar 20 círculos y comenzar la animación
+generateCircles(20);
 animate();
