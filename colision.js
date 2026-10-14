@@ -1,7 +1,6 @@
 const canvas = document.getElementById("canvas");
 let ctx = canvas.getContext("2d");
 
-// Obtiene las dimensiones de la pantalla actual
 const window_height = window.innerHeight;
 const window_width = window.innerWidth;
 
@@ -14,6 +13,7 @@ class Circle {
         this.posX = x;
         this.posY = y;
         this.radius = radius;
+        this.originalColor = color;
         this.color = color;
         this.text = text;
         this.speed = speed;
@@ -35,68 +35,95 @@ class Circle {
     }
 
     detectCollision(circles) {
+        let isColliding = false;
+
         circles.forEach(other => {
             if (this !== other) {
-                let dx = this.posX - other.posX;
-                let dy = this.posY - other.posY;
+                let dx = other.posX - this.posX;
+                let dy = other.posY - this.posY;
                 let distance = Math.sqrt(dx * dx + dy * dy);
+                let minDist = this.radius + other.radius;
 
-                // Si la distancia es menor a la suma de los radios, hay colisión
-                if (distance < this.radius + other.radius) {
-                    this.color = '#0000FF'; // Azul
-                    other.color = '#0000FF'; // Azul
+                // Colisión entre círculos
+                if (distance < minDist) {
+                    isColliding = true;
+
+                    // Despegar los círculos para evitar que se atoren
+                    let overlap = minDist - distance;
+                    let angle = Math.atan2(dy, dx);
+                    
+                    this.posX -= Math.cos(angle) * overlap * 0.5;
+                    this.posY -= Math.sin(angle) * overlap * 0.5;
+                    other.posX += Math.cos(angle) * overlap * 0.5;
+                    other.posY += Math.sin(angle) * overlap * 0.5;
+
+                    // Intercambio de velocidades (rebote físico)
+                    let tempDx = this.dx;
+                    let tempDy = this.dy;
+
+                    this.dx = other.dx;
+                    this.dy = other.dy;
+
+                    other.dx = tempDx;
+                    other.dy = tempDy;
                 }
             }
         });
+
+        if (isColliding) {
+            this.color = '#0000FF';
+        } else {
+            this.color = this.originalColor;
+        }
     }
 
     update(context, circles) {
-        this.draw(context);
         this.detectCollision(circles);
+        this.draw(context);
 
-        // Actualizar la posición X
+        // Actualizar la posición X y evitar que se quede pegado en las orillas laterales
         this.posX += this.dx;
-
-        // Cambiar la dirección si el círculo llega al borde del canvas en X
-        if (this.posX + this.radius > window_width || this.posX - this.radius < 0) {
+        if (this.posX + this.radius > window_width) {
+            this.posX = window_width - this.radius; // Forzar posición dentro del borde derecho
+            this.dx = -this.dx;
+        } else if (this.posX - this.radius < 0) {
+            this.posX = this.radius; // Forzar posición dentro del borde izquierdo
             this.dx = -this.dx;
         }
 
-        // Actualizar la posición Y
+        // Actualizar la posición Y y evitar que se quede pegado en las orillas superior/inferior
         this.posY += this.dy;
-
-        // Cambiar la dirección si el círculo llega al borde del canvas en Y
-        if (this.posY + this.radius > window_height || this.posY - this.radius < 0) {
+        if (this.posY + this.radius > window_height) {
+            this.posY = window_height - this.radius; // Forzar posición dentro del borde inferior
+            this.dy = -this.dy;
+        } else if (this.posY - this.radius < 0) {
+            this.posY = this.radius; // Forzar posición dentro del borde superior
             this.dy = -this.dy;
         }
     }
 }
 
-// Crear un array para almacenar los círculos
 let circles = [];
 
-// Función para generar círculos aleatorios (20 círculos y velocidad de 1 a 5)
 function generateCircles(n) {
     for (let i = 0; i < n; i++) {
-        let radius = Math.random() * 30 + 20; // Radio entre 20 y 50
+        let radius = Math.random() * 30 + 20;
         let x = Math.random() * (window_width - radius * 2) + radius;
         let y = Math.random() * (window_height - radius * 2) + radius;
-        let color = `#${Math.floor(Math.random() * 16777215).toString(16)}`; // Color aleatorio
-        let speed = Math.random() * 4 + 1; // Velocidad entre 1 y 5
-        let text = `C${i + 1}`; // Etiqueta del círculo
+        let color = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+        let speed = Math.random() * 4 + 1;
+        let text = `C${i + 1}`;
         circles.push(new Circle(x, y, radius, color, text, speed));
     }
 }
 
-// Función para animar los círculos
 function animate() {
-    ctx.clearRect(0, 0, window_width, window_height); // Limpiar el canvas
+    ctx.clearRect(0, 0, window_width, window_height);
     circles.forEach(circle => {
-        circle.update(ctx, circles); // Actualizar cada círculo pasando el array completo
+        circle.update(ctx, circles);
     });
-    requestAnimationFrame(animate); // Repetir la animación
+    requestAnimationFrame(animate);
 }
 
-// Generar 20 círculos y comenzar la animación
 generateCircles(20);
 animate();
